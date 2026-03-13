@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Gemini AI 기안내용 생성 - UI 목업</title>
+<style>
+  /* ── 디자인 시스템 토큰 (design_system.py 기반) ── */
+  :root {
+    --primary: #1A3A5C;
+    --primary-light: #2A5F9E;
+    --primary-dark: #0F2540;
+    --bg-window: #F4F6F8;
+    --bg-surface: #FFFFFF;
+    --border: #C8D3DD;
+    --border-light: #E2E8F0;
+    --text-primary: #1A2332;
+    --text-secondary: #4A5568;
+    --text-muted: #8A9BB0;
+    --info: #0072CE;
+    --success: #2E7D32;
+    --danger: #B71C1C;
+    --font-family: 'Malgun Gothic', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #E8ECF0;
+    font-family: var(--font-family);
+    font-size: 9pt;
+    color: var(--text-primary);
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+
+  h1 {
+    font-size: 16pt;
+    color: var(--primary);
+    margin-bottom: 5px;
+  }
+  h2 {
+    font-size: 12pt;
+    color: var(--primary);
+    margin-bottom: 10px;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 4px;
+  }
+  .section-label {
+    font-size: 10pt;
+    color: #666;
+    margin-bottom: 20px;
+  }
+
+  /* ── 메인 윈도우 (tab_purchase.py 기안 작성 섹션) ── */
+  .main-window {
+    background: var(--bg-window);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    width: 780px;
+    padding: 0;
+  }
+
+  .labelframe {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin: 12px;
+    position: relative;
+  }
+  .labelframe-title {
+    position: absolute;
+    top: -10px;
+    left: 12px;
+    background: var(--bg-window);
+    padding: 0 6px;
+    font-size: 9pt;
+    font-weight: bold;
+    color: var(--primary);
+  }
+  .labelframe-content {
+    padding: 16px 12px 12px;
+  }
+
+  /* Grid 레이아웃 */
+  .grid-row {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    align-items: start;
+    padding: 3px 0;
+    gap: 8px;
+  }
+  .grid-row label {
+    font-size: 9pt;
+    color: var(--text-primary);
+    padding-top: 4px;
+    text-align: left;
+  }
+  .grid-row .hint {
+    font-size: 8pt;
+    color: var(--text-muted);
+    padding-top: 4px;
+  }
+
+  input[type="text"], textarea {
+    font-family: var(--font-family);
+    font-size: 9pt;
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    padding: 4px 8px;
+    border-radius: 2px;
+    width: 100%;
+  }
+  input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary-light);
+  }
+
+  textarea {
+    resize: none;
+    line-height: 1.5;
+  }
+
+  /* ── AI 활용하기 버튼 (NEW!) ── */
+  .ai-btn-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 2px 0 4px;
+  }
+  .ai-btn {
+    background: linear-gradient(135deg, #4285F4, #34A853);
+    color: white;
+    border: none;
+    padding: 5px 14px;
+    border-radius: 3px;
+    font-family: var(--font-family);
+    font-size: 8pt;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+  }
+  .ai-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+  .ai-btn .sparkle {
+    font-size: 11pt;
+  }
+
+  .new-badge {
+    display: inline-block;
+    background: #FF6B35;
+    color: white;
+    font-size: 7pt;
+    font-weight: bold;
+    padding: 1px 5px;
+    border-radius: 8px;
+    margin-left: 4px;
+    vertical-align: top;
+  }
+
+  /* 구분선 */
+  .separator {
+    height: 1px;
+    background: var(--border-light);
+    margin: 6px 0;
+  }
+
+  /* ── Annotation Arrow ── */
+  .annotation {
+    position: relative;
+    margin-left: 100px;
+  }
+  .annotation-box {
+    background: #FFF3E0;
+    border: 2px solid #FF9800;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 8pt;
+    color: #E65100;
+    font-weight: bold;
+    position: absolute;
+    right: -20px;
+    top: -40px;
+    white-space: nowrap;
+    z-index: 10;
+  }
+  .annotation-box::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid #FF9800;
+  }
+
+  /* ══════════════════════════════════════════════ */
+  /* ── AI 기안 생성 다이얼로그 ── */
+  /* ══════════════════════════════════════════════ */
+  .dialog-overlay {
+    position: relative;
+    width: 520px;
+  }
+  .dialog {
+    background: var(--bg-window);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    width: 100%;
+  }
+  .dialog-titlebar {
+    background: var(--primary);
+    color: white;
+    padding: 8px 12px;
+    font-size: 9pt;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 4px 4px 0 0;
+  }
+  .dialog-titlebar .close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 12pt;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  .dialog-body {
+    padding: 16px;
+  }
+
+  .context-info {
+    background: #E3F2FD;
+    border: 1px solid #90CAF9;
+    border-radius: 3px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 8pt;
+    color: var(--info);
+    font-weight: bold;
+  }
+
+  .dialog label {
+    display: block;
+    font-size: 9pt;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+  }
+  .dialog .hint-text {
+    font-size: 8pt;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  .generate-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 7px 20px;
+    border-radius: 3px;
+    font-family: var(--font-family);
+    font-size: 9pt;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 10px 0;
+  }
+  .generate-btn:hover { background: var(--primary-light); }
+
+  .generate-btn.loading {
+    background: #A0AEC0;
+    cursor: not-allowed;
+  }
+
+  .result-section {
+    margin-top: 10px;
+  }
+  .result-label {
+    font-size: 9pt;
+    font-weight: bold;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 3px;
+    margin-bottom: 6px;
+  }
+  .result-preview {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 12px;
+    min-height: 140px;
+    font-size: 9pt;
+    line-height: 1.7;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+  }
+  .result-preview.placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .result-preview.generated {
+    color: var(--text-primary);
+    background: #FAFFFE;
+    border-color: var(--success);
+  }
+
+  .dialog-buttons {
+    padding: 10px 16px 14px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid var(--border-light);
+  }
+  .btn {
+    font-family: var(--font-family);
+    font-size: 9pt;
+    padding: 6px 18px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+  }
+  .btn:hover { background: #E2E8F0; }
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    font-weight: bold;
+  }
+  .btn-primary:hover { background: var(--primary-light); }
+  .btn-primary:disabled {
+    background: #A0AEC0;
+    border-color: #A0AEC0;
+    cursor: not-allowed;
+  }
+  .btn-retry {
+    border-color: var(--primary-light);
+    color: var(--primary);
+  }
+  .btn-retry:hover { background: #E8EFF7; }
+
+  /* ── 설정 다이얼로그 ── */
+  .settings-section {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-light);
+  }
+  .settings-section h3 {
+    font-size: 10pt;
+    color: var(--primary);
+    margin-bottom: 8px;
+  }
+  .settings-row {
+    display: grid;
+    grid-template-columns: 100px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+  }
+  .settings-row label {
+    font-size: 9pt;
+  }
+  .masked-input {
+    font-family: monospace;
+    letter-spacing: 2px;
+  }
+
+  /* ── 상태별 다이얼로그 ── */
+  .state-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+  }
+  .state-tab {
+    padding: 8px 16px;
+    font-size: 9pt;
+    font-weight: bold;
+    background: #E2E8F0;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border: 1px solid var(--border);
+    border-bottom: none;
+  }
+  .state-tab.active {
+    background: var(--bg-window);
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+  }
+
+  /* ── 에러 메시지 ── */
+  .error-msg {
+    background: #FFEBEE;
+    border: 1px solid #EF9A9A;
+    border-radius: 3px;
+    padding: 8px 12px;
+    font-size: 8pt;
+    color: var(--danger);
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── 로딩 스피너 ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #E2E8F0;
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  /* ── 키보드 단축키 표시 ── */
+  kbd {
+    background: #E2E8F0;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 7pt;
+    font-family: monospace;
+    color: var(--text-secondary);
+  }
+
+  .shortcut-hint {
+    font-size: 7pt;
+    color: var(--text-muted);
+    text-align: right;
+    margin-top: 6px;
+  }
+
+  /* 페이지 구역 제목 */
+  .page-section {
+    width: 780px;
+    text-align: center;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 1: 기안 작성 탭 (Before/After)        -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="page-section">
+  <h1>Gemini AI 기안내용 생성 - UI 목업</h1>
+  <p class="section-label">purchase-automation 디자인 시스템(design_system.py) 기반</p>
+</div>
+
+<h2 style="width:780px;">1. 기안 작성 섹션 (tab_purchase.py) — AI 버튼 추가</h2>
+
+<div class="main-window">
+  <div class="labelframe">
+    <span class="labelframe-title"> ④ 기안 작성 </span>
+    <div class="labelframe-content">
+
+      <!-- 템플릿 -->
+      <div style="display:flex; align-items:center; gap:8px; padding:4px 0 8px;">
+        <label>템플릿:</label>
+        <select style="font-family:var(--font-family); font-size:9pt; padding:3px; width:200px; border:1px solid var(--border);">
+          <option>(선택안함)</option>
+          <option>사무용품 구매</option>
+          <option>전산장비 구매</option>
+        </select>
+        <button class="btn" style="padding:3px 10px;">템플릿 적용</button>
+        <button class="btn" style="padding:3px 10px;">현재 내용 저장</button>
+        <span style="font-size:8pt; color:var(--text-muted);">※ 기안 템플릿 탭에서 관리</span>
+      </div>
+
+      <div class="separator"></div>
+
+      <!-- 기안제목 -->
+      <div class="grid-row">
+        <label>기안제목 *:</label>
+        <input type="text" value="업무용 노트북 구매 기안" style="max-width:400px;">
+        <span class="hint">※ 폴더명으로 사용</span>
+      </div>
+
+      <!-- 기안일 -->
+      <div class="grid-row">
+        <label>기안일:</label>
+        <input type="text" value="2026-03-13" style="max-width:150px;">
+        <span class="hint">※ YYYY-MM-DD (비워두면 오늘)</span>
+      </div>
+
+      <!-- 부서명 -->
+      <div class="grid-row">
+        <label>부서명:</label>
+        <span style="color:var(--text-primary); padding-top:4px;">전산팀</span>
+        <span class="hint">※ [설정]에서 변경</span>
+      </div>
+
+      <!-- 내용 * (row=5) -->
+      <div class="grid-row" style="align-items:start;">
+        <label style="padding-top:6px;">내용 *:</label>
+        <textarea rows="4" placeholder="기안 내용을 입력하세요..."></textarea>
+      </div>
+
+      <!-- ★ AI 활용하기 버튼 (NEW - row=6) ★ -->
+      <div class="ai-btn-row" style="position:relative;">
+        <div class="annotation-box">NEW! AI 활용하기 버튼 추가 위치</div>
+        <button class="ai-btn">
+          <span class="sparkle">&#x2728;</span> AI 활용하기
+          <span class="new-badge">NEW</span>
+        </button>
+      </div>
+
+      <!-- 비고 (row=7, 기존 row=6에서 이동) -->
+      <div class="grid-row">
+        <label>비고:</label>
+        <input type="text" value="">
+      </div>
+
+      <div class="separator"></div>
+
+      <!-- 포함 항목 선택 -->
+      <div class="labelframe" style="margin:0;">
+        <span class="labelframe-title"> 포함 항목 선택 </span>
+        <div class="labelframe-content" style="display:flex; gap:24px; align-items:center;">
+          <label style="display:flex; align-items:center; gap:4px;">
+            <input type="checkbox" checked> 계약방법 포함
+          </label>
+          <label style="display:flex; align-items:center; gap:4px;">
+            <input type="checkbox" checked> 수의계약 사유 포함
+          </label>
+          <select style="font-family:var(--font-family); font-size:9pt; padding:3px; width:260px; border:1px solid var(--border);">
+            <option>(해당없음)</option>
+          </select>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 2: AI 다이얼로그 - 초기 상태           -->
+<!-- ═══════════════════════════════════════════════ -->
+<h2 style="width:780px;">2. AI 기안 생성 다이얼로그 — 상태별 화면</h2>
+
+<div style="display:flex; gap:30px; flex-wrap:wrap; justify-content:center;">
+
+<!-- 상태 A: 초기 (키워드 입력 전) -->
+<div>
+  <p style="text-align:center; font-weight:bold; color:var(--primary); margin-bottom:8px;">
+    A. 초기 상태 (키워드 입력 전)
+  </p>
+  <div class="dialog-overlay">
+    <div class="dialog">
+      <div class="dialog-titlebar">
+        <span>&#x2728; AI 기안 내용 생성</span>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <!-- 품목 컨텍스트 -->
+        <div class="context-info">
+          &#x1F4E6; 현재 품목: 업무용 노트북 (i7/16GB/512SSD) 10대
+        </div>
+
+        <label>설명/키워드 *:</label>
+        <textarea rows="3" placeholder="예) 직원 업무환경 개선을 위한 노후 장비 교체 구매"></textarea>
+        <p class="hint-text">※ 구매 목적, 배경 등을 간략히 입력하세요</p>
+
+        <button class="generate-btn">&#x26A1; 생성하기</button>
+
+        <div class="result-section">
+          <div class="result-label">── 생성 결과 ──</div>
+          <div class="result-preview placeholder">
+            키워드를 입력하고 [생성하기]를 클릭하세요
+          </div>
+        </div>
+      </div>
+      <div class="dialog-buttons">
+        <div class="shortcut-hint" style="flex:1; text-align:left; padding-top:4px;">
+          <kbd>Enter</kbd> 생성 &nbsp; <kbd>Ctrl+Enter</kbd> 적용 &nbsp; <kbd>Esc</kbd> 닫기
+        </div>
+        <button class="btn btn-primary" disabled>적용</button>
+        <button class="btn btn-retry" disabled>다시 생성</button>
+        <button class="btn">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 상태 B: 생성 중 (로딩) -->
+<div>
+  <p style="text-align:center; font-weight:bold; color:var(--primary); margin-bottom:8px;">
+    B. 생성 중 (로딩)
+  </p>
+  <div class="dialog-overlay">
+    <div class="dialog">
+      <div class="dialog-titlebar">
+        <span>&#x2728; AI 기안 내용 생성</span>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="context-info">
+          &#x1F4E6; 현재 품목: 업무용 노트북 (i7/16GB/512SSD) 10대
+        </div>
+
+        <label>설명/키워드 *:</label>
+        <textarea rows="3" style="background:#EAECEF; color:var(--text-secondary);" disabled>직원 업무환경 개선을 위한 노후 장비 교체 구매</textarea>
+        <p class="hint-text">※ 구매 목적, 배경 등을 간략히 입력하세요</p>
+
+        <button class="generate-btn loading" disabled>
+          <span class="spinner"></span> 생성 중...
+        </button>
+
+        <div class="result-section">
+          <div class="result-label">── 생성 결과 ──</div>
+          <div class="result-preview placeholder">
+            <span class="spinner" style="width:20px;height:20px;"></span>
+            &nbsp; Gemini AI가 내용을 생성하고 있습니다...
+          </div>
+        </div>
+      </div>
+      <div class="dialog-buttons">
+        <div class="shortcut-hint" style="flex:1; text-align:left; padding-top:4px;">
+          <kbd>Enter</kbd> 생성 &nbsp; <kbd>Ctrl+Enter</kbd> 적용 &nbsp; <kbd>Esc</kbd> 닫기
+        </div>
+        <button class="btn btn-primary" disabled>적용</button>
+        <button class="btn btn-retry" disabled>다시 생성</button>
+        <button class="btn">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- 상태 C: 생성 완료                              -->
+<!-- ═══════════════════════════════════════════════ -->
+<div style="display:flex; gap:30px; flex-wrap:wrap; justify-content:center;">
+
+<div>
+  <p style="text-align:center; font-weight:bold; color:var(--success); margin-bottom:8px;">
+    C. 생성 완료 (적용/다시 생성 가능)
+  </p>
+  <div class="dialog-overlay" style="width:540px;">
+    <div class="dialog">
+      <div class="dialog-titlebar">
+        <span>&#x2728; AI 기안 내용 생성</span>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="context-info">
+          &#x1F4E6; 현재 품목: 업무용 노트북 (i7/16GB/512SSD) 10대
+        </div>
+
+        <label>설명/키워드 *:</label>
+        <textarea rows="3">직원 업무환경 개선을 위한 노후 장비 교체 구매</textarea>
+        <p class="hint-text">※ 구매 목적, 배경 등을 간략히 입력하세요</p>
+
+        <button class="generate-btn">&#x26A1; 생성하기</button>
+
+        <div class="result-section">
+          <div class="result-label">── 생성 결과 ── <span style="color:var(--success); font-size:8pt;">&#x2705; 생성 완료</span></div>
+          <div class="result-preview generated">관내 직원 업무환경 개선을 위하여 업무용 노트북을 아래와 같이 구매하고자 합니다.
+
+현재 사용 중인 노트북의 노후화(5년 이상 경과)로 인해 프로그램 구동 속도 저하 및 잦은 오류 발생으로 업무 처리에 지장을 초래하고 있어 교체가 시급한 상황입니다.
+
+이에 시장조사를 통해 비교견적 2건을 확보하였으며, 최저가 업체를 선정하여 수의계약으로 구매하고자 합니다.
+
+위와 같이 구매하고자 하오니 결재 바랍니다.</div>
+        </div>
+      </div>
+      <div class="dialog-buttons">
+        <div class="shortcut-hint" style="flex:1; text-align:left; padding-top:4px;">
+          <kbd>Enter</kbd> 생성 &nbsp; <kbd>Ctrl+Enter</kbd> 적용 &nbsp; <kbd>Esc</kbd> 닫기
+        </div>
+        <button class="btn btn-primary">적용</button>
+        <button class="btn btn-retry">다시 생성</button>
+        <button class="btn">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 상태 D: 에러 -->
+<div>
+  <p style="text-align:center; font-weight:bold; color:var(--danger); margin-bottom:8px;">
+    D. 에러 상태 (API 키 미설정)
+  </p>
+  <div class="dialog-overlay" style="width:440px;">
+    <div class="dialog">
+      <div class="dialog-titlebar">
+        <span>&#x2728; AI 기안 내용 생성</span>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="error-msg">
+          &#x26A0;&#xFE0F; Gemini API 키가 설정되지 않았습니다.<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[설정]에서 API 키를 먼저 입력하세요.
+        </div>
+        <div style="margin-top:12px; text-align:center;">
+          <button class="btn btn-primary" style="padding:6px 20px;">설정 열기</button>
+          <button class="btn" style="padding:6px 20px; margin-left:8px;">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 3: 설정 다이얼로그 변경                -->
+<!-- ═══════════════════════════════════════════════ -->
+<h2 style="width:780px;">3. 설정 다이얼로그 — AI 설정 섹션 추가</h2>
+
+<div class="dialog-overlay" style="width:500px;">
+  <div class="dialog">
+    <div class="dialog-titlebar">
+      <span>설정</span>
+      <button class="close-btn">&times;</button>
+    </div>
+    <div class="dialog-body">
+
+      <!-- 기존 설정 (축약) -->
+      <div style="color:var(--text-muted); font-style:italic; padding:6px 0;">
+        ── 기존 설정 항목 (폴더/부서명/검수자/입회자) ──
+      </div>
+
+      <!-- AI 설정 (NEW!) -->
+      <div class="settings-section">
+        <h3>&#x2728; AI 설정 <span class="new-badge">NEW</span></h3>
+
+        <div class="settings-row">
+          <label>Gemini API 키:</label>
+          <input type="text" class="masked-input" value="••••••••••••••••••••••••••••" style="max-width:280px;">
+          <button class="btn" style="padding:2px 8px; font-size:8pt;">표시</button>
+        </div>
+
+        <div style="font-size:8pt; color:var(--text-muted); margin-top:4px; padding-left:104px;">
+          ※ <a href="#" style="color:var(--info); text-decoration:none;">Google AI Studio</a>에서 무료 발급
+          &nbsp;|&nbsp; 기안 내용 AI 생성에 사용됩니다
+        </div>
+      </div>
+
+    </div>
+    <div class="dialog-buttons">
+      <button class="btn btn-primary">저장</button>
+      <button class="btn">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 4: 적용 후 최종 모습                   -->
+<!-- ═══════════════════════════════════════════════ -->
+<h2 style="width:780px;">4. AI 생성 내용 적용 후 — 기안 작성 탭 최종 모습</h2>
+
+<div class="main-window">
+  <div class="labelframe">
+    <span class="labelframe-title"> ④ 기안 작성 </span>
+    <div class="labelframe-content">
+
+      <div style="display:flex; align-items:center; gap:8px; padding:4px 0 8px;">
+        <label>템플릿:</label>
+        <select style="font-family:var(--font-family); font-size:9pt; padding:3px; width:200px; border:1px solid var(--border);">
+          <option>(선택안함)</option>
+        </select>
+        <button class="btn" style="padding:3px 10px;">템플릿 적용</button>
+        <button class="btn" style="padding:3px 10px;">현재 내용 저장</button>
+        <span style="font-size:8pt; color:var(--text-muted);">※ 기안 템플릿 탭에서 관리</span>
+      </div>
+
+      <div class="separator"></div>
+
+      <div class="grid-row">
+        <label>기안제목 *:</label>
+        <input type="text" value="업무용 노트북 구매 기안" style="max-width:400px;">
+        <span class="hint">※ 폴더명으로 사용</span>
+      </div>
+
+      <div class="grid-row">
+        <label>기안일:</label>
+        <input type="text" value="2026-03-13" style="max-width:150px;">
+        <span class="hint">※ YYYY-MM-DD (비워두면 오늘)</span>
+      </div>
+
+      <div class="grid-row">
+        <label>부서명:</label>
+        <span style="color:var(--text-primary); padding-top:4px;">전산팀</span>
+        <span class="hint">※ [설정]에서 변경</span>
+      </div>
+
+      <!-- 내용 필드: AI 생성 결과 적용됨 -->
+      <div class="grid-row" style="align-items:start;">
+        <label style="padding-top:6px;">내용 *:</label>
+        <textarea rows="6" style="border-color:var(--success); background:#FAFFFE;">관내 직원 업무환경 개선을 위하여 업무용 노트북을 아래와 같이 구매하고자 합니다.
+
+현재 사용 중인 노트북의 노후화(5년 이상 경과)로 인해 프로그램 구동 속도 저하 및 잦은 오류 발생으로 업무 처리에 지장을 초래하고 있어 교체가 시급한 상황입니다.
+
+이에 시장조사를 통해 비교견적 2건을 확보하였으며, 최저가 업체를 선정하여 수의계약으로 구매하고자 합니다.
+
+위와 같이 구매하고자 하오니 결재 바랍니다.</textarea>
+      </div>
+
+      <div class="ai-btn-row">
+        <button class="ai-btn">
+          <span class="sparkle">&#x2728;</span> AI 활용하기
+        </button>
+      </div>
+
+      <div class="grid-row">
+        <label>비고:</label>
+        <input type="text" value="">
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SECTION 5: UX 플로우 요약                      -->
+<!-- ═══════════════════════════════════════════════ -->
+<h2 style="width:780px;">5. UX 플로우 요약</h2>
+
+<div style="width:780px; background:var(--bg-surface); border:1px solid var(--border); border-radius:4px; padding:20px;">
+  <div style="display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap;">
+    <div style="background:#E3F2FD; border:1px solid #90CAF9; border-radius:6px; padding:10px 14px; text-align:center; font-size:9pt;">
+      <strong>1</strong><br>품목 정보 입력<br><span style="font-size:8pt; color:var(--text-muted);">품명, 규격, 수량</span>
+    </div>
+    <span style="font-size:16pt; color:var(--primary);">&#x2192;</span>
+    <div style="background:linear-gradient(135deg, #E8F5E9, #C8E6C9); border:1px solid #66BB6A; border-radius:6px; padding:10px 14px; text-align:center; font-size:9pt;">
+      <strong>2</strong><br>[AI 활용하기]<br><span style="font-size:8pt; color:var(--success);">클릭</span>
+    </div>
+    <span style="font-size:16pt; color:var(--primary);">&#x2192;</span>
+    <div style="background:#FFF3E0; border:1px solid #FFB74D; border-radius:6px; padding:10px 14px; text-align:center; font-size:9pt;">
+      <strong>3</strong><br>키워드 입력<br><span style="font-size:8pt; color:#E65100;">"노후 장비 교체"</span>
+    </div>
+    <span style="font-size:16pt; color:var(--primary);">&#x2192;</span>
+    <div style="background:#E8EAF6; border:1px solid #7986CB; border-radius:6px; padding:10px 14px; text-align:center; font-size:9pt;">
+      <strong>4</strong><br>[생성하기]<br><span style="font-size:8pt; color:#303F9F;">Gemini API 호출</span>
+    </div>
+    <span style="font-size:16pt; color:var(--primary);">&#x2192;</span>
+    <div style="background:#E0F7FA; border:1px solid #4DD0E1; border-radius:6px; padding:10px 14px; text-align:center; font-size:9pt;">
+      <strong>5</strong><br>미리보기 확인<br><span style="font-size:8pt; color:#00838F;">만족?</span>
+    </div>
+    <span style="font-size:16pt; color:var(--primary);">&#x2192;</span>
+    <div style="background:#E8F5E9; border:2px solid var(--success); border-radius:6px; padding:10px 14px; text-align:center; font-size:9pt;">
+      <strong>6</strong><br>[적용] 클릭<br><span style="font-size:8pt; color:var(--success);">내용 필드 반영</span>
+    </div>
+  </div>
+  <div style="text-align:center; margin-top:12px; font-size:8pt; color:var(--text-muted);">
+    &#x1F504; 불만족 시 [다시 생성] 클릭으로 반복 가능 &nbsp;|&nbsp; 총 3클릭 이내 완료
+  </div>
+</div>
+
+<div style="height:40px;"></div>
+
+</body>
+</html>

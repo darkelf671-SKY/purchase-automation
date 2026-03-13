@@ -21,6 +21,7 @@ SCREENSHOT_DIR = DATA_DIR / "screenshots"
 OUTPUT_DIR = DATA_DIR / "outputs"
 DB_PATH = DATA_DIR / "purchase.db"
 TEMPLATE_DIR = _BUNDLE_DIR / "documents" / "templates"
+GUIDE_DIR = _BUNDLE_DIR / "docs" / "manual"
 
 NAVER_SHOPPING_API_URL = "https://openapi.naver.com/v1/search/shop.json"
 
@@ -155,6 +156,28 @@ def set_witness(value: str) -> None:
     s = load_settings()
     s["witness"] = value
     save_settings(s)
+
+
+def get_gemini_api_key() -> str:
+    """설정된 Gemini API 키 반환"""
+    return load_settings().get("gemini_api_key", "")
+
+
+def set_gemini_api_key(value: str) -> None:
+    """Gemini API 키를 settings.json에 저장"""
+    s = load_settings()
+    s["gemini_api_key"] = value
+    save_settings(s)
+
+
+def open_gemini_guide() -> bool:
+    """Gemini API 키 발급 가이드 HTML을 기본 브라우저로 열기"""
+    import webbrowser
+    guide_path = GUIDE_DIR / "gemini-api-key-guide.html"
+    if guide_path.exists():
+        webbrowser.open(str(guide_path))
+        return True
+    return False
 
 
 _s = load_settings()

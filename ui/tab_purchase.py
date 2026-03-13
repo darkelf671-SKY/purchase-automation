@@ -5,7 +5,8 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 from datetime import datetime
-from config import SCREENSHOT_DIR, make_output_dir_named, get_department, PAYMENT_METHODS
+from config import (SCREENSHOT_DIR, make_output_dir_named, get_department,
+                    PAYMENT_METHODS, get_gemini_api_key, open_gemini_guide)
 from ui.design_system import COLORS, SPACING, FONTS, BTN_ACTION_PAD
 from core.models import PurchaseData, PurchaseItem, VendorQuote
 from core.semi_auto import SemiAutoHelper
@@ -17,6 +18,7 @@ import db.sole_contract_repo as scr_repo
 import db.draft_template_repo as tpl_repo
 from ui.tab_vendor import VendorDialog
 from ui.base_dialog import BaseDialog
+from ui.dialog_ai_draft import AIDraftDialog
 
 MAX_ITEMS = 15
 UNIT_OPTIONS = ["개", "EA", "세트", "식", "권", "본", "대", "통", "박스", "롤", "장"]
@@ -805,18 +807,25 @@ class PurchaseTab(ttk.Frame):
                                            highlightthickness=1, padx=SPACING["sm"], pady=SPACING["sm"])
         self._draft_content_text.grid(row=5, column=1, columnspan=3, sticky="ew", pady=SPACING["sm"])
 
+        # AI 활용하기 버튼
+        self._ai_draft_btn = ttk.Button(
+            draft_frame, text="AI 활용하기",
+            command=self._open_ai_draft_dialog)
+        self._ai_draft_btn.grid(
+            row=6, column=1, columnspan=3, sticky="e", pady=(0, SPACING["sm"]))
+
         # 비고
-        ttk.Label(draft_frame, text="비고:").grid(row=6, column=0, sticky="w", pady=SPACING["sm"], padx=(0, SPACING["md"]))
+        ttk.Label(draft_frame, text="비고:").grid(row=7, column=0, sticky="w", pady=SPACING["sm"], padx=(0, SPACING["md"]))
         self._draft_remark_var = tk.StringVar()
         ttk.Entry(draft_frame, textvariable=self._draft_remark_var, width=48).grid(
-            row=6, column=1, columnspan=3, sticky="ew", pady=SPACING["sm"])
+            row=7, column=1, columnspan=3, sticky="ew", pady=SPACING["sm"])
 
         ttk.Separator(draft_frame, orient="horizontal").grid(
-            row=7, column=0, columnspan=4, sticky="ew", pady=SPACING["md"])
+            row=8, column=0, columnspan=4, sticky="ew", pady=SPACING["md"])
 
         # 포함 항목 선택
         opt_frame = ttk.LabelFrame(draft_frame, text=" 포함 항목 선택 ", padding=SPACING["lg"])
-        opt_frame.grid(row=8, column=0, columnspan=4, sticky="ew", pady=(0, SPACING["sm"]))
+        opt_frame.grid(row=9, column=0, columnspan=4, sticky="ew", pady=(0, SPACING["sm"]))
 
         self._has_payment_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(opt_frame, text="계약방법 포함",
@@ -1156,6 +1165,58 @@ class PurchaseTab(ttk.Frame):
                 self._draft_vendor_var.set(names[-1])
                 self._on_draft_vendor_select()
         VendorDialog(self, title="신규 업체 등록", on_save=on_saved)
+
+    def _open_ai_draft_dialog(self):
+        """AI 기안 내용 생성 다이얼로그 열기"""
+        api_key = get_gemini_api_key()
+        if not api_key:
+            result = messagebox.askyesnocancel(
+                "API 키 미설정",
+                "Gemini API 키가 설정되지 않았습니다.\n\n"
+                "API 키 발급 가이드를 열까요?\n\n"
+                "[예] 발급 가이드 보기\n"
+                "[아니오] 닫기")
+            if result is True:
+                open_gemini_guide()
+            return
+
+        context = self._collect_purchase_context()
+        existing = self._draft_content_text.get("1.0", "end").strip()
+
+        def on_apply(text: str):
+            if existing:
+                confirm = messagebox.askyesno(
+                    "내용 덮어쓰기",
+                    "기존 기안 내용이 있습니다.\n"
+                    "AI 생성 결과로 덮어쓰시겠습니까?")
+                if not confirm:
+                    return
+            self._draft_content_text.delete("1.0", "end")
+            self._draft_content_text.insert("1.0", text)
+
+        AIDraftDialog(
+            self._content.winfo_toplevel(),
+            on_apply=on_apply,
+            purchase_context=context)
+
+    def _collect_purchase_context(self) -> dict:
+        """현재 입력된 품목 정보를 dict로 수집"""
+        items = []
+        for row in self._item_rows:
+            items.append({
+                "item_name": row.item_name_var.get(),
+                "spec": row.spec_var.get(),
+                "quantity": str(row.qty_var.get()),
+                "unit": row.unit_var.get(),
+            })
+        first = items[0] if items else {}
+        return {
+            "item_name": first.get("item_name", ""),
+            "spec": first.get("spec", ""),
+            "quantity": first.get("quantity", ""),
+            "unit": first.get("unit", ""),
+            "items": items,
+        }
 
     def _load_draft_template(self):
         """기안 템플릿 불러오기"""

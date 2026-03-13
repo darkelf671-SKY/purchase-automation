@@ -76,6 +76,7 @@ def build_exe():
 
     # 템플릿 파일 (HWP/Excel) — 읽기전용 리소스로 번들
     template_dir = ROOT / "documents" / "templates"
+    guide_dir = ROOT / "docs" / "manual"
 
     cmd = [
         sys.executable, "-m", "PyInstaller",
@@ -84,6 +85,8 @@ def build_exe():
         "--name", "구매기안자동화",
         # 읽기전용 리소스 번들
         "--add-data", f"{template_dir};documents/templates",
+        # 가이드 HTML 번들
+        "--add-data", f"{guide_dir};docs/manual",
         # 시드 DB 번들
         "--add-data", f"{seed};data",
         # 아이콘 (없으면 무시)
