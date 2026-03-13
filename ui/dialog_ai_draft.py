@@ -5,8 +5,8 @@ from tkinter import ttk, messagebox
 
 from ui.base_dialog import BaseDialog
 from ui.design_system import COLORS, SPACING, FONTS
-from core.gemini_api import GeminiDraftAPI, GeminiAPIError
-from config import get_gemini_api_key, open_gemini_guide
+from core.gemini_api import GeminiDraftAPI, GeminiAPIError, FREE_MODELS
+from config import get_gemini_api_key, get_gemini_model, open_gemini_guide
 
 
 class AIDraftDialog(BaseDialog):
@@ -196,7 +196,8 @@ class AIDraftDialog(BaseDialog):
             self._show_no_key_message()
             return
 
-        api = GeminiDraftAPI(api_key)
+        model = get_gemini_model()
+        api = GeminiDraftAPI(api_key, model=model)
         context = self._purchase_context
         self._set_loading(True)
 
@@ -204,9 +205,10 @@ class AIDraftDialog(BaseDialog):
             try:
                 result = api.generate_draft_content(
                     user_input, context)
-                self.after(0, lambda: self._on_result(result))
+                self.after(0, lambda r=result: self._on_result(r))
             except GeminiAPIError as e:
-                self.after(0, lambda: self._on_error(e))
+                err = e  # except 블록 밖에서 e가 삭제되므로 복사
+                self.after(0, lambda ex=err: self._on_error(ex))
             finally:
                 self.after(0, lambda: self._set_loading(False))
 
@@ -229,6 +231,11 @@ class AIDraftDialog(BaseDialog):
 
     def _on_result(self, text: str):
         """API 성공 시 미리보기 영역에 결과 표시"""
+        if not text or not text.strip():
+            self._status_var.set("[오류] 생성된 내용이 비어 있습니다. 다시 시도하세요.")
+            self._status_label.configure(foreground=COLORS["danger"])
+            self._retry_btn.configure(state="normal")
+            return
         self._generated_text = text
         self._preview_text.configure(state="normal")
         self._preview_text.delete("1.0", "end")
@@ -236,13 +243,16 @@ class AIDraftDialog(BaseDialog):
         self._preview_text.configure(state="disabled")
         self._apply_btn.configure(state="normal")
         self._retry_btn.configure(state="normal")
-        self._status_var.set("생성 완료")
+        model_id = get_gemini_model()
+        model_name = FREE_MODELS.get(model_id, model_id)
+        self._status_var.set(f"생성 완료 | 모델: {model_name}")
         self._status_label.configure(
             foreground=COLORS["success"])
 
     def _on_error(self, error: GeminiAPIError):
         """API 실패 시 에러 메시지 표시"""
-        self._status_var.set(str(error))
+        msg = str(error) if str(error) and str(error) != "None" else "알 수 없는 오류가 발생했습니다."
+        self._status_var.set(f"[오류] {msg}")
         self._status_label.configure(
             foreground=COLORS["danger"])
         if self._generated_text:

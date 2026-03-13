@@ -3,7 +3,7 @@
 > **Summary**: Google Gemini API를 활용하여 공공기관 기안서 "내용" 필드를 자동 생성하는 기능의 상세 설계
 >
 > **Project**: 구매기안 자동화 시스템 v1.0
-> **Version**: v1.3
+> **Version**: v1.4
 > **Author**: 전산팀 장길섭
 > **Date**: 2026-03-13
 > **Status**: Draft
@@ -62,7 +62,7 @@ tab_purchase.py                      dialog_ai_draft.py
                                      |  Google Gemini API               |
                                      |  generativelanguage.googleapis   |
                                      |  .com/v1beta                     |
-                                     |  Model: gemini-2.5-flash (Free)  |
+                                     |  Model: 사용자 선택 (Free)  |
                                      +----------------------------------+
 
 config.py                            dialog_settings.py
@@ -172,8 +172,15 @@ GEMINI_API_URL = (
     "https://generativelanguage.googleapis.com/v1beta"
     "/models/{model}:generateContent"
 )
-DEFAULT_MODEL = "gemini-2.5-flash"
-REQUEST_TIMEOUT = 20  # seconds
+DEFAULT_MODEL = "gemini-3.1-flash-lite-preview"
+REQUEST_TIMEOUT = 30  # seconds
+
+# 무료 모델 목록 (model_id → 표시명)
+FREE_MODELS: dict[str, str] = {
+    "gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite — 분당 15회, 하루 500회",
+    "gemini-2.5-flash-lite":         "Gemini 2.5 Flash Lite — 분당 10회, 하루 20회",
+    "gemini-2.5-flash":              "Gemini 2.5 Flash — 분당 5회, 하루 20회",
+}
 
 # ── 에러 코드 & 메시지 ───────────────────────────────────────
 ERROR_MESSAGES: dict[str, str] = {
@@ -437,6 +444,19 @@ def set_gemini_api_key(value: str) -> None:
     s = load_settings()
     s["gemini_api_key"] = value
     save_settings(s)
+
+
+def get_gemini_model() -> str:
+    """설정된 Gemini 모델 ID 반환 (없으면 기본값)"""
+    from core.gemini_api import DEFAULT_MODEL
+    return load_settings().get("gemini_model", DEFAULT_MODEL)
+
+
+def set_gemini_model(value: str) -> None:
+    """Gemini 모델 ID를 settings.json에 저장"""
+    s = load_settings()
+    s["gemini_model"] = value
+    save_settings(s)
 ```
 
 **settings.json 구조 변경 (before/after):**
@@ -452,7 +472,7 @@ def set_gemini_api_key(value: str) -> None:
   "naver_client_secret": "..."
 }
 
-// After (gemini_api_key 추가)
+// After (gemini_api_key, gemini_model 추가)
 {
   "output_dir": "...",
   "department": "...",
@@ -460,7 +480,8 @@ def set_gemini_api_key(value: str) -> None:
   "witness": "...",
   "naver_client_id": "...",
   "naver_client_secret": "...",
-  "gemini_api_key": "AIza..."
+  "gemini_api_key": "AIza...",
+  "gemini_model": "gemini-3.1-flash-lite-preview"
 }
 ```
 
@@ -831,7 +852,9 @@ def open_gemini_guide():
 # 기존 import에 추가
 from config import (...기존...,
                     get_gemini_api_key, set_gemini_api_key,
+                    get_gemini_model, set_gemini_model,
                     open_gemini_guide)
+from core.gemini_api import FREE_MODELS
 ```
 
 #### 3.4.2 Grid Row 변경표 (Before/After)
@@ -850,7 +873,8 @@ from config import (...기존...,
 | 9 | _(없음)_ | **Separator** (NEW) |
 | 10 | _(없음)_ | **"AI 설정" 제목** (NEW) |
 | 11 | _(없음)_ | **Gemini API 키 입력란** (NEW) |
-| 12 | _(없음)_ | **"발급 가이드 보기" 버튼** (NEW) |
+| 12 | _(없음)_ | **AI 모델 선택 Combobox** (NEW) |
+| 13 | _(없음)_ | **"발급 가이드 보기" 버튼** (NEW) |
 
 #### 3.4.3 추가 코드 상세
 
@@ -895,10 +919,32 @@ ttk.Label(frame, text="※ Google AI Studio에서 무료 발급",
     row=11, column=2, sticky="w",
     padx=(SPACING["md"], 0))
 
+# AI 모델 선택 (FR-18, FR-19)
+ttk.Label(frame, text="AI 모델:").grid(
+    row=12, column=0, sticky="w",
+    pady=SPACING["sm"], padx=(0, SPACING["md"]))
+
+self._model_labels = list(FREE_MODELS.values())
+self._model_ids = list(FREE_MODELS.keys())
+current_model = get_gemini_model()
+current_label = FREE_MODELS.get(current_model, self._model_labels[0])
+
+self._model_var = tk.StringVar(value=current_label)
+self._model_combo = ttk.Combobox(
+    frame, textvariable=self._model_var, width=42,
+    values=self._model_labels, state="readonly")
+self._model_combo.grid(row=12, column=1, sticky="ew",
+                        pady=SPACING["sm"])
+
+ttk.Label(frame, text="※ 한도 초과 시 다른 모델로 변경",
+          foreground=COLORS["warning"]).grid(
+    row=12, column=2, sticky="w",
+    padx=(SPACING["md"], 0))
+
 # 발급 가이드 보기 버튼
 ttk.Button(frame, text="발급 가이드 보기",
            command=self._open_api_guide).grid(
-    row=12, column=1, sticky="w",
+    row=13, column=1, sticky="w",
     pady=SPACING["sm"])
 ```
 
@@ -1335,3 +1381,4 @@ Phase 7: 통합 테스트
 | Version | Date | Changes | Author |
 |---------|------|---------|--------|
 | 0.1 | 2026-03-13 | Initial design - Plan 기반 + FR-14(가이드 내장) 반영 | CTO Lead |
+| 0.2 | 2026-03-13 | FR-18~21 반영: 무료 모델 선택 Combobox, 모델별 한도 표시, config get/set_gemini_model, threading 클로저 버그 수정, 기본 모델 gemini-3.1-flash-lite-preview | BE-Expert |

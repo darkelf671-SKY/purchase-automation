@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>무료 모델 선택 기능 — UI 디자인</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --primary:        #1A3A5C;
+    --primary-light:  #2E5C8A;
+    --bg:             #FAFBFC;
+    --surface:        #F0F2F5;
+    --border:         #D1D5DB;
+    --text:           #1F2937;
+    --text-muted:     #6B7280;
+    --success:        #059669;
+    --warning:        #D97706;
+    --danger:         #DC2626;
+    --white:          #FFFFFF;
+    --font:           'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: #E8EAED;
+    color: var(--text);
+    padding: 32px 24px 60px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ── Page header ── */
+  .page-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .page-header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 6px;
+  }
+  .page-header p {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ── Section wrapper ── */
+  .section {
+    margin-bottom: 48px;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+    border-left: 3px solid var(--primary);
+    padding-left: 8px;
+    margin-bottom: 16px;
+    text-transform: none;
+  }
+
+  /* ── Views row ── */
+  .views-row {
+    display: flex;
+    gap: 0;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .view-slot {
+    flex: 1;
+    min-width: 300px;
+  }
+  .view-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  /* ── Arrow connector ── */
+  .arrow-col {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    min-width: 60px;
+    padding-top: 32px;
+  }
+  .arrow-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .arrow-line {
+    width: 36px;
+    height: 2px;
+    background: var(--primary-light);
+    position: relative;
+  }
+  .arrow-line::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: -5px;
+    border-left: 8px solid var(--primary-light);
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+  }
+  .arrow-text {
+    font-size: 10px;
+    color: var(--primary-light);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* ── Tkinter window chrome ── */
+  .tk-window {
+    background: var(--surface);
+    border: 1px solid #9CA3AF;
+    border-radius: 3px;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.18);
+    overflow: hidden;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .tk-titlebar {
+    background: linear-gradient(to bottom, #4A7BAB, var(--primary));
+    color: white;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+  }
+  .tk-titlebar-btns {
+    display: flex;
+    gap: 4px;
+  }
+  .tk-titlebar-btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    border: none;
+    font-size: 8px;
+    line-height: 12px;
+    text-align: center;
+    color: rgba(255,255,255,0.7);
+    cursor: default;
+  }
+  .tk-body {
+    background: var(--bg);
+    padding: 16px;
+  }
+
+  /* ── Section heading inside dialog ── */
+  .dlg-section-head {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 4px 8px;
+    margin-bottom: 10px;
+  }
+
+  /* ── Form row ── */
+  .form-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 7px;
+    flex-wrap: nowrap;
+  }
+  .form-label {
+    font-size: 12px;
+    color: var(--text);
+    white-space: nowrap;
+    min-width: 80px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .form-label.req::after {
+    content: ' *';
+    color: var(--danger);
+  }
+  .tk-entry {
+    flex: 1;
+    height: 24px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    padding: 0 6px;
+    font-family: var(--font);
+    font-size: 12px;
+    color: var(--text);
+    border-radius: 2px;
+    min-width: 0;
+  }
+  .tk-entry.masked {
+    color: var(--text-muted);
+    letter-spacing: 2px;
+  }
+  .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .hint.warning {
+    color: var(--warning);
+  }
+
+  /* ── Buttons ── */
+  .tk-btn {
+    height: 24px;
+    padding: 0 10px;
+    font-family: var(--font);
+    font-size: 12px;
+    border: 1px solid #9CA3AF;
+    background: linear-gradient(to bottom, #F9FAFB, #E5E7EB);
+    color: var(--text);
+    border-radius: 2px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tk-btn:hover { background: linear-gradient(to bottom, #F3F4F6, #D1D5DB); }
+  .tk-btn.primary {
+    background: linear-gradient(to bottom, var(--primary-light), var(--primary));
+    color: white;
+    border-color: var(--primary);
+  }
+  .tk-btn.primary:hover {
+    background: linear-gradient(to bottom, #3A6FA0, #1A3A5C);
+  }
+  .tk-btn.danger {
+    background: linear-gradient(to bottom, #FCA5A5, var(--danger));
+    color: white;
+    border-color: #B91C1C;
+  }
+  .tk-btn.success-flat {
+    background: none;
+    border: none;
+    color: var(--success);
+    font-size: 11px;
+    padding: 0;
+    cursor: default;
+    font-weight: 600;
+    height: auto;
+  }
+  .tk-btn.link {
+    background: none;
+    border: none;
+    color: var(--primary-light);
+    padding: 0;
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+    height: auto;
+  }
+
+  /* ── Combobox ── */
+  .tk-combo-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+  }
+  .tk-combo {
+    width: 100%;
+    height: 24px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    padding: 0 24px 0 6px;
+    font-family: var(--font);
+    font-size: 12px;
+    color: var(--text);
+    border-radius: 2px;
+    appearance: none;
+    cursor: pointer;
+  }
+  .tk-combo-arrow {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 22px;
+    height: 24px;
+    background: linear-gradient(to bottom, #F0F2F5, #D1D5DB);
+    border-left: 1px solid var(--border);
+    border-radius: 0 2px 2px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  /* ── Dropdown popup (expanded) ── */
+  .dropdown-popup {
+    border: 1px solid #9CA3AF;
+    background: var(--white);
+    border-top: none;
+    border-radius: 0 0 2px 2px;
+    box-shadow: 2px 3px 6px rgba(0,0,0,0.15);
+    margin-top: -1px;
+    overflow: hidden;
+    width: 100%;
+  }
+  .dropdown-item {
+    padding: 4px 8px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dropdown-item:hover { background: #EFF6FF; }
+  .dropdown-item.selected {
+    background: var(--primary);
+    color: white;
+  }
+  .dropdown-item .badge {
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.9);
+    white-space: nowrap;
+  }
+  .dropdown-item:not(.selected) .badge {
+    background: #E5E7EB;
+    color: var(--text-muted);
+  }
+
+  /* ── Separator ── */
+  .tk-sep {
+    height: 1px;
+    background: var(--border);
+    margin: 10px 0;
+  }
+
+  /* ── Button row ── */
+  .btn-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .btn-row.left { justify-content: flex-start; }
+
+  /* ── Annotation callout ── */
+  .callout {
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: #92400E;
+    margin-top: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .callout .icon { flex-shrink: 0; font-size: 13px; }
+  .callout.new {
+    background: #ECFDF5;
+    border-color: #6EE7B7;
+    color: #065F46;
+  }
+  .callout.info {
+    background: #EFF6FF;
+    border-color: #93C5FD;
+    color: #1E40AF;
+  }
+
+  /* ── View 3: AI Draft dialog specific ── */
+  .ai-dialog .tk-textarea {
+    width: 100%;
+    height: 58px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    padding: 5px 6px;
+    font-family: var(--font);
+    font-size: 12px;
+    color: var(--text);
+    resize: none;
+    border-radius: 2px;
+    display: block;
+    margin-top: 2px;
+  }
+  .ai-dialog .result-area {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 8px;
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 90px;
+  }
+  .ai-dialog .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+  }
+  .info-banner {
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 2px;
+    padding: 5px 8px;
+    font-size: 12px;
+    color: #1E40AF;
+    margin-bottom: 10px;
+  }
+
+  /* ── New row indicator ── */
+  .new-row-indicator {
+    position: relative;
+  }
+  .new-tag {
+    font-size: 9px;
+    font-weight: 700;
+    color: white;
+    background: var(--success);
+    padding: 1px 5px;
+    border-radius: 8px;
+    margin-left: 4px;
+    vertical-align: middle;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .views-row { flex-direction: column; }
+    .arrow-col { transform: rotate(90deg); padding: 8px 0; align-self: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  Page header                                               -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <h1>무료 모델 선택 기능 — UI 디자인</h1>
+  <p>구매기안 자동화 시스템 v1.0 · 설정 다이얼로그 AI 설정 섹션 + AI 기안 생성 다이얼로그</p>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  Section 1: Before / After settings dialog                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">설정 다이얼로그 — AI 설정 섹션 Before / After</div>
+
+  <div class="views-row">
+
+    <!-- ── View 1: Before ── -->
+    <div class="view-slot">
+      <div class="view-label">View 1 · 현재 (Before)</div>
+      <div class="tk-window">
+        <div class="tk-titlebar">
+          <span>설정</span>
+          <div class="tk-titlebar-btns">
+            <div class="tk-titlebar-btn">×</div>
+          </div>
+        </div>
+        <div class="tk-body">
+
+          <!-- AI 설정 섹션 -->
+          <div class="dlg-section-head">AI 설정</div>
+
+          <!-- API 키 행 -->
+          <div class="form-row">
+            <span class="form-label">Gemini API 키:</span>
+            <input class="tk-entry masked" style="max-width:160px;" readonly value="••••••••••••••••••••">
+            <button class="tk-btn">보기</button>
+            <span class="hint">※ Google AI Studio에서 무료 발급</span>
+          </div>
+
+          <!-- 발급 가이드 행 -->
+          <div class="form-row" style="margin-left:86px;">
+            <button class="tk-btn link">발급 가이드 보기</button>
+          </div>
+
+          <div class="tk-sep"></div>
+          <div class="btn-row">
+            <button class="tk-btn">취소</button>
+            <button class="tk-btn primary">저장</button>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="callout" style="max-width:520px; margin: 8px auto 0;">
+        <span class="icon">ℹ</span>
+        <span>현재는 API 키 입력 필드만 있음. 모델 선택 옵션 없음.</span>
+      </div>
+    </div>
+
+    <!-- ── Arrow ── -->
+    <div class="arrow-col">
+      <div class="arrow-body">
+        <div class="arrow-line"></div>
+        <span class="arrow-text">모델 선택 추가</span>
+      </div>
+    </div>
+
+    <!-- ── View 2: After ── -->
+    <div class="view-slot">
+      <div class="view-label">View 2 · 변경 후 (After)</div>
+      <div class="tk-window" style="overflow:visible; position:relative; z-index:10;">
+        <div class="tk-titlebar">
+          <span>설정</span>
+          <div class="tk-titlebar-btns">
+            <div class="tk-titlebar-btn">×</div>
+          </div>
+        </div>
+        <div class="tk-body" style="overflow:visible;">
+
+          <div class="dlg-section-head">AI 설정</div>
+
+          <!-- API 키 행 -->
+          <div class="form-row">
+            <span class="form-label">Gemini API 키:</span>
+            <input class="tk-entry masked" style="max-width:160px;" readonly value="••••••••••••••••••••">
+            <button class="tk-btn">보기</button>
+            <span class="hint">※ Google AI Studio에서 무료 발급</span>
+          </div>
+
+          <!-- AI 모델 행 (NEW) — dropdown expanded -->
+          <div class="form-row new-row-indicator" style="align-items: flex-start;">
+            <span class="form-label" style="padding-top:3px;">
+              AI 모델:
+              <span class="new-tag">NEW</span>
+            </span>
+            <div style="flex:1; min-width:0;">
+              <!-- Combobox showing selected value -->
+              <div class="tk-combo-wrap">
+                <div class="tk-combo" style="display:flex; align-items:center; height:24px; border-color: var(--primary-light);">
+                  <span style="font-size:12px; color:var(--text); overflow:hidden; white-space:nowrap;">Gemini 3.1 Flash Lite (최신 프리뷰)</span>
+                </div>
+                <div class="tk-combo-arrow">▼</div>
+              </div>
+
+              <!-- Expanded dropdown -->
+              <div class="dropdown-popup">
+                <div class="dropdown-item">
+                  Gemini 2.0 Flash
+                  <span class="badge">안정적, 범용</span>
+                </div>
+                <div class="dropdown-item">
+                  Gemini 2.0 Flash Lite
+                  <span class="badge">가볍고 빠름</span>
+                </div>
+                <div class="dropdown-item">
+                  Gemini 2.5 Flash Lite
+                  <span class="badge">경량 최신</span>
+                </div>
+                <div class="dropdown-item selected">
+                  Gemini 3.1 Flash Lite
+                  <span class="badge">최신 프리뷰</span>
+                </div>
+              </div>
+            </div>
+            <span class="hint warning" style="padding-top:3px;">※ 한도 초과 시 다른 모델로 변경</span>
+          </div>
+
+          <!-- 발급 가이드 행 -->
+          <div class="form-row" style="margin-left:86px; margin-top:8px;">
+            <button class="tk-btn link">발급 가이드 보기</button>
+          </div>
+
+          <div class="tk-sep"></div>
+          <div class="btn-row">
+            <button class="tk-btn">취소</button>
+            <button class="tk-btn primary">저장</button>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="callout new" style="max-width:520px; margin: 8px auto 0;">
+        <span class="icon">✓</span>
+        <div>
+          <strong>AI 모델 Combobox 추가.</strong>
+          드롭다운 확장 시 4개 옵션 표시.
+          현재 선택 항목은 파란 배경으로 강조.
+          힌트 텍스트로 한도 초과 시 전환 안내.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /views-row -->
+</div><!-- /section -->
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  Section 2: AI draft generation dialog                     -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">View 3 · AI 기안 내용 생성 다이얼로그 (모델 표시 포함)</div>
+
+  <div style="max-width:540px; margin: 0 auto;">
+    <div class="view-label">View 3 · AI 기안 내용 생성</div>
+
+    <div class="tk-window ai-dialog">
+      <div class="tk-titlebar">
+        <span>AI 기안 내용 생성</span>
+        <div class="tk-titlebar-btns">
+          <div class="tk-titlebar-btn">×</div>
+        </div>
+      </div>
+      <div class="tk-body">
+
+        <!-- 현재 품목 배너 -->
+        <div class="info-banner">
+          현재 품목: <strong>노트북(LG 그램 17)</strong> &nbsp;2대
+        </div>
+
+        <!-- 설명/키워드 -->
+        <div class="form-row" style="align-items:flex-start;">
+          <span class="form-label req" style="padding-top:4px;">설명/키워드</span>
+          <div style="flex:1;">
+            <textarea class="tk-textarea" placeholder="업무용 노트북 교체 필요, 노후 장비 대체, 재택근무 확대 대응…"></textarea>
+          </div>
+        </div>
+
+        <div class="btn-row" style="margin-top:6px;">
+          <button class="tk-btn primary" style="min-width:80px;">생성하기</button>
+        </div>
+
+        <div class="tk-sep"></div>
+
+        <!-- 결과 영역 -->
+        <div style="font-size:12px; font-weight:700; color:var(--primary); margin-bottom:6px;">생성 결과</div>
+
+        <div class="result-area">
+          노후화된 업무용 노트북을 교체하여 업무 효율을 향상시키고자 합니다.
+          현재 사용 중인 장비는 배터리 성능 저하 및 처리 속도 저하로 인해
+          업무 생산성에 지장을 초래하고 있으며, 재택근무 확대에 따른
+          이동성 높은 고성능 노트북의 필요성이 증대되었습니다.
+          이에 LG 그램 17 2대를 구매하여 업무 연속성을 확보하고자 합니다.
+        </div>
+
+        <!-- 상태 바 -->
+        <div class="status-bar">
+          <span class="tk-btn success-flat">생성 완료</span>
+          <span style="font-size:11px; color:var(--text-muted);">
+            모델: <strong style="color:var(--text);">Gemini 3.1 Flash Lite</strong>
+          </span>
+        </div>
+
+        <div class="tk-sep"></div>
+
+        <div class="btn-row">
+          <button class="tk-btn">취소</button>
+          <button class="tk-btn">다시 생성</button>
+          <button class="tk-btn primary">적용</button>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="callout info" style="margin-top:8px;">
+      <span class="icon">ℹ</span>
+      <div>
+        상태 바 우측에 <strong>"모델: Gemini 3.1 Flash Lite"</strong> 표시.
+        설정에서 선택한 모델명이 그대로 반영됨.
+        한도 초과 시 사용자가 설정에서 모델을 변경하면 즉시 반영.
+      </div>
+    </div>
+  </div>
+</div><!-- /section -->
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  Implementation notes                                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">구현 메모 — dialog_settings.py 변경 포인트</div>
+
+  <div style="
+    background: #1E293B;
+    color: #E2E8F0;
+    border-radius: 4px;
+    padding: 16px 18px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    max-width: 860px;
+    overflow-x: auto;
+  ">
+    <div style="color:#94A3B8; margin-bottom:8px;"># config.py — 모델 목록 및 기본값 추가</div>
+    <div><span style="color:#7DD3FC;">GEMINI_MODEL_OPTIONS</span> = [</div>
+    <div>&nbsp;&nbsp;<span style="color:#86EFAC;">"gemini-2.0-flash"</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#64748B;"># 안정적, 범용</span></div>
+    <div>&nbsp;&nbsp;<span style="color:#86EFAC;">"gemini-2.0-flash-lite"</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#64748B;"># 가볍고 빠름</span></div>
+    <div>&nbsp;&nbsp;<span style="color:#86EFAC;">"gemini-2.5-flash-lite-preview"</span>,<span style="color:#64748B;"># 경량 최신</span></div>
+    <div>&nbsp;&nbsp;<span style="color:#86EFAC;">"gemini-3.1-flash-lite-preview"</span>,<span style="color:#64748B;"># 최신 프리뷰</span></div>
+    <div>]</div>
+    <div><span style="color:#7DD3FC;">GEMINI_MODEL_LABELS</span> = {</div>
+    <div>&nbsp;&nbsp;<span style="color:#86EFAC;">"gemini-2.0-flash"</span>: <span style="color:#FCD34D;">"Gemini 2.0 Flash (안정적, 범용)"</span>,</div>
+    <div>&nbsp;&nbsp;<span style="color:#86EFAC;">"gemini-2.0-flash-lite"</span>: <span style="color:#FCD34D;">"Gemini 2.0 Flash Lite (가볍고 빠름)"</span>,</div>
+    <div>&nbsp;&nbsp;<span style="color:#86EFAC;">"gemini-2.5-flash-lite-preview"</span>: <span style="color:#FCD34D;">"Gemini 2.5 Flash Lite (경량 최신)"</span>,</div>
+    <div>&nbsp;&nbsp;<span style="color:#86EFAC;">"gemini-3.1-flash-lite-preview"</span>: <span style="color:#FCD34D;">"Gemini 3.1 Flash Lite (최신 프리뷰)"</span>,</div>
+    <div>}</div>
+    <div><span style="color:#7DD3FC;">GEMINI_DEFAULT_MODEL</span> = <span style="color:#86EFAC;">"gemini-2.0-flash"</span></div>
+
+    <br>
+    <div style="color:#94A3B8;"># dialog_settings.py — AI 모델 Combobox 추가</div>
+    <div><span style="color:#C084FC;">self</span>._ai_model_var = tk.StringVar(value=settings.get(<span style="color:#86EFAC;">"gemini_model"</span>, GEMINI_DEFAULT_MODEL))</div>
+    <div>model_labels = list(GEMINI_MODEL_LABELS.values())</div>
+    <div>ttk.Combobox(frame, textvariable=<span style="color:#C084FC;">self</span>._ai_model_var, values=model_labels,</div>
+    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state=<span style="color:#86EFAC;">"readonly"</span>, width=<span style="color:#FCD34D;">38</span>).grid(...)</div>
+
+    <br>
+    <div style="color:#94A3B8;"># _on_save() — 선택된 라벨을 모델 ID로 역변환하여 저장</div>
+    <div>label_to_id = {v: k <span style="color:#7DD3FC;">for</span> k, v <span style="color:#7DD3FC;">in</span> GEMINI_MODEL_LABELS.items()}</div>
+    <div>settings[<span style="color:#86EFAC;">"gemini_model"</span>] = label_to_id.get(<span style="color:#C084FC;">self</span>._ai_model_var.get(), GEMINI_DEFAULT_MODEL)</div>
+  </div>
+</div>
+
+</body>
+</html>

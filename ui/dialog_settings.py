@@ -6,7 +6,9 @@ from pathlib import Path
 from config import (OUTPUT_DIR, SCREENSHOT_DIR, get_output_dir, set_output_dir,
                     get_department, set_department,
                     get_inspector, set_inspector, get_witness, set_witness,
-                    get_gemini_api_key, set_gemini_api_key, open_gemini_guide)
+                    get_gemini_api_key, set_gemini_api_key,
+                    get_gemini_model, set_gemini_model, open_gemini_guide)
+from core.gemini_api import FREE_MODELS
 from ui.base_dialog import BaseDialog
 from ui.design_system import COLORS, SPACING, FONTS
 
@@ -110,10 +112,29 @@ class OutputSettingsDialog(BaseDialog):
                   foreground=COLORS["text_muted"]).grid(
             row=11, column=2, sticky="w", padx=(SPACING["md"], 0))
 
+        # AI 모델 선택
+        ttk.Label(frame, text="AI 모델:").grid(
+            row=12, column=0, sticky="w", pady=SPACING["sm"], padx=(0, SPACING["md"]))
+
+        self._model_labels = list(FREE_MODELS.values())
+        self._model_ids = list(FREE_MODELS.keys())
+        current_model = get_gemini_model()
+        current_label = FREE_MODELS.get(current_model, self._model_labels[0])
+
+        self._model_var = tk.StringVar(value=current_label)
+        self._model_combo = ttk.Combobox(
+            frame, textvariable=self._model_var, width=42,
+            values=self._model_labels, state="readonly")
+        self._model_combo.grid(row=12, column=1, sticky="ew", pady=SPACING["sm"])
+
+        ttk.Label(frame, text="※ 한도 초과 시 다른 모델로 변경",
+                  foreground=COLORS["warning"]).grid(
+            row=12, column=2, sticky="w", padx=(SPACING["md"], 0))
+
         # 발급 가이드 보기 버튼
         ttk.Button(frame, text="발급 가이드 보기",
                    command=self._open_api_guide).grid(
-            row=12, column=1, sticky="w", pady=SPACING["sm"])
+            row=13, column=1, sticky="w", pady=SPACING["sm"])
 
         frame.columnconfigure(1, weight=1)
 
@@ -158,6 +179,12 @@ class OutputSettingsDialog(BaseDialog):
         set_inspector(self._inspector_var.get().strip())
         set_witness(self._witness_var.get().strip())
         set_gemini_api_key(self._gemini_key_var.get().strip())
+
+        # 모델 저장 (표시명 → model_id 역변환)
+        selected_label = self._model_var.get()
+        if selected_label in self._model_labels:
+            idx = self._model_labels.index(selected_label)
+            set_gemini_model(self._model_ids[idx])
 
         dept = self._dept_var.get().strip() or "(미설정)"
         insp = self._inspector_var.get().strip() or "(미설정)"

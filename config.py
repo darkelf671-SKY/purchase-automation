@@ -170,6 +170,19 @@ def set_gemini_api_key(value: str) -> None:
     save_settings(s)
 
 
+def get_gemini_model() -> str:
+    """설정된 Gemini 모델 ID 반환 (없으면 기본값)"""
+    from core.gemini_api import DEFAULT_MODEL
+    return load_settings().get("gemini_model", DEFAULT_MODEL)
+
+
+def set_gemini_model(value: str) -> None:
+    """Gemini 모델 ID를 settings.json에 저장"""
+    s = load_settings()
+    s["gemini_model"] = value
+    save_settings(s)
+
+
 def open_gemini_guide() -> bool:
     """Gemini API 키 발급 가이드 HTML을 기본 브라우저로 열기"""
     import webbrowser

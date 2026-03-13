@@ -11,8 +11,15 @@ GEMINI_API_URL = (
     "https://generativelanguage.googleapis.com/v1beta"
     "/models/{model}:generateContent"
 )
-DEFAULT_MODEL = "gemini-2.5-flash"
-REQUEST_TIMEOUT = 20  # seconds
+DEFAULT_MODEL = "gemini-3.1-flash-lite-preview"
+REQUEST_TIMEOUT = 30  # seconds
+
+# 무료 모델 목록 (model_id → 표시명)
+FREE_MODELS: dict[str, str] = {
+    "gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite — 분당 15회, 하루 500회",
+    "gemini-2.5-flash-lite":         "Gemini 2.5 Flash Lite — 분당 10회, 하루 20회",
+    "gemini-2.5-flash":              "Gemini 2.5 Flash — 분당 5회, 하루 20회",
+}
 
 # ── 에러 코드 & 메시지 ───────────────────────────────────────
 ERROR_MESSAGES: dict[str, str] = {

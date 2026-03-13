@@ -3,7 +3,7 @@
 > **Summary**: Gemini API를 활용하여 공공기관 기안서 "내용" 필드를 자동 생성하는 기능
 >
 > **Project**: 구매기안 자동화 시스템 v1.0
-> **Version**: v1.3
+> **Version**: v1.4
 > **Author**: 전산팀 장길섭
 > **Date**: 2026-03-13
 > **Status**: Draft
@@ -103,6 +103,10 @@
 | FR-15 | 설정 다이얼로그 AI 섹션에 "발급 가이드 보기" 버튼 추가 | High | Pending | FE-Arch |
 | FR-16 | API 키 미설정 안내 메시지에서도 가이드 열기 옵션 제공 | Medium | Pending | FE-Arch |
 | FR-17 | PyInstaller EXE 빌드 시 가이드 HTML 파일 번들 포함 | High | Pending | CA |
+| FR-18 | 설정에서 무료 AI 모델을 선택할 수 있는 Combobox 제공 | High | Pending | FE-Arch |
+| FR-19 | 모델별 사용 한도(분당/하루)를 표시명에 포함하여 사용자가 판단 가능 | Medium | Pending | PM |
+| FR-20 | 한도 초과 시 다른 모델로 변경하여 계속 사용 가능 | High | Pending | BE-Expert |
+| FR-21 | AI 생성 완료 시 사용된 모델명을 상태바에 표시 | Low | Pending | FE-Arch |
 
 ### 3.3 Non-Functional Requirements
 
@@ -164,8 +168,15 @@ import requests
 from typing import Optional
 
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-DEFAULT_MODEL = "gemini-2.5-flash"
-REQUEST_TIMEOUT = 20  # seconds
+DEFAULT_MODEL = "gemini-3.1-flash-lite-preview"
+REQUEST_TIMEOUT = 30  # seconds
+
+# 무료 모델 목록 (model_id → 표시명)
+FREE_MODELS: dict[str, str] = {
+    "gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite — 분당 15회, 하루 500회",
+    "gemini-2.5-flash-lite":         "Gemini 2.5 Flash Lite — 분당 10회, 하루 20회",
+    "gemini-2.5-flash":              "Gemini 2.5 Flash — 분당 5회, 하루 20회",
+}
 
 
 class GeminiDraftAPI:
@@ -294,8 +305,8 @@ ttk.Entry(frame, textvariable=self._gemini_key_var, show="*", width=44).grid(...
 |------|-----|
 | **Endpoint** | `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent` |
 | **Auth** | Query parameter `key={API_KEY}` |
-| **Model** | `gemini-2.5-flash` (무료 티어, 15 RPM, 1000 RPD) |
-| **Timeout** | 20초 |
+| **Model** | `gemini-3.1-flash-lite-preview` (기본), 사용자 선택 가능 (3종) |
+| **Timeout** | 30초 |
 | **Content-Type** | `application/json` |
 
 #### 4.3.2 Request Format
@@ -736,15 +747,17 @@ def _set_loading(self, loading: bool):
 
 | Service | Tier | Rate Limit | Cost |
 |---------|------|-----------|------|
-| Google Gemini API | Free | 15 RPM, 1000 RPD (Flash) | 무료 |
+| Google Gemini API (3.1 Flash Lite) | Free | 15 RPM, 500 RPD | 무료 (기본) |
+| Google Gemini API (2.5 Flash Lite) | Free | 10 RPM, 20 RPD | 무료 |
+| Google Gemini API (2.5 Flash) | Free | 5 RPM, 20 RPD | 무료 |
 
 ### 10.3 Integration Points (Existing Code)
 
 | File | Change Type | Description |
 |------|------------|-------------|
-| `config.py` | Add functions | `get_gemini_api_key()`, `set_gemini_api_key()` |
+| `config.py` | Add functions | `get_gemini_api_key()`, `set_gemini_api_key()`, `get_gemini_model()`, `set_gemini_model()` |
 | `ui/tab_purchase.py` | Add button + handler | "AI 활용하기" 버튼, grid row 조정 |
-| `ui/dialog_settings.py` | Add section | "AI 설정" 섹션 + API 키 입력란 |
+| `ui/dialog_settings.py` | Add section | "AI 설정" 섹션 + API 키 입력란 + 모델 선택 Combobox |
 | `core/gemini_api.py` | New file | GeminiDraftAPI 클래스 |
 | `ui/dialog_ai_draft.py` | New file | AIDraftDialog 클래스 |
 
@@ -790,3 +803,4 @@ def _set_loading(self, loading: bool):
 |---------|------|---------|--------|
 | 0.1 | 2026-03-13 | Initial draft - Expert team plan | CTO Lead |
 | 0.2 | 2026-03-13 | FR-14~17 추가 (API 키 발급 가이드 프로그램 내장) | PM |
+| 0.3 | 2026-03-13 | FR-18~21 추가 (무료 모델 선택 기능), 모델 변경(2.0→3.1 Flash Lite 기본), 타임아웃 30초, threading 클로저 버그 수정 | BE-Expert |
